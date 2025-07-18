@@ -5,7 +5,7 @@ const { execSync } = require("child_process");
  * @param {string} serviceName - Name of the service (e.g., 'server_auth')
  * @returns {Function} Express middleware function
  */
-module.exports = serviceName => {
+function createStatusMiddleware(serviceName) {
   return async (_req, res, next) => {
     try {
       const commitHash = execSync("git rev-parse HEAD").toString().trim();
@@ -22,4 +22,6 @@ module.exports = serviceName => {
       next(error);
     }
   };
-};
+}
+
+module.exports = { createStatusMiddleware };

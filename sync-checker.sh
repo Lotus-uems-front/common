@@ -10,8 +10,30 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Check dependencies
+check_dependencies() {
+    local missing_deps=()
+    
+    if ! command -v curl &> /dev/null; then
+        missing_deps+=("curl")
+    fi
+    
+    if ! command -v jq &> /dev/null; then
+        missing_deps+=("jq")
+    fi
+    
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        echo -e "${RED}Error: Missing required dependencies: ${missing_deps[*]}${NC}"
+        echo "Please install the missing dependencies and try again."
+        exit 2
+    fi
+}
+
 # Minimal sync checker for multiple services
 SERVICES=("server_auth" "server_file" "server_personal" "server_platform" "server_trade" "server_socket" "server_queue")
+
+# Check dependencies before proceeding
+check_dependencies
 
 check_service() {
     local service=$1

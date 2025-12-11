@@ -1,0 +1,284 @@
+{
+  "schema_design": {
+    "description": "MongoDB schema design for materials belonging to companies",
+    "collections": {
+      "companies": {
+        "note": "Assumed to exist with unique _id",
+        "example": {
+          "_id": "507f191e810c19729de860ea",
+          "name": "Company ABC",
+          "otherFields": "..."
+        }
+      },
+      "materials": {
+        "description": "Separate collection for materials to enable efficient cross-company queries",
+        "schema": {
+          "_id": {
+            "type": "ObjectId",
+            "description": "Unique identifier for the material document"
+          },
+          "companyId": {
+            "type": "String",
+            "description": "Reference to the company that owns this material",
+            "required": true,
+            "index": true
+          },
+          "category": {
+            "type": "String",
+            "description": "Category name (e.g., 'Metals', 'Plastics', 'Chemicals') in Russian",
+            "required": true,
+            "index": true
+          },
+          "name": {
+            "type": "String",
+            "description": "Material name (can be same across different categories) in Russian",
+            "required": true,
+            "index": true
+          },
+          "description": {
+            "type": "String",
+            "description": "Optional description of the material"
+          },
+          "price": {
+            "type": "Object",
+            "description": "Price of the material with currency specified",
+            "example": {
+              "currency": "RUB",
+              "amount": 3300
+            }
+          },
+          "unitSystem": {
+            "type": "String",
+            "description": "Unit system of the material",
+            "enum": ["SI", "imperial"],
+            "default": "SI"
+          },
+          "specStandard": {
+            "type": "String",
+            "description": "Specification standard of the material",
+            "enum": ["GOST", "ANSI"]
+          },
+          "properties": {
+            "type": "Object",
+            "description": "Flexible object for material-specific properties",
+            "example": {
+              "density": 7.85,
+              "meltingPoint": 1538,
+              "customFields": {}
+            }
+          },
+          "isActive": {
+            "type": "Boolean",
+            "description": "Soft delete flag",
+            "default": true,
+            "index": true
+          },
+          "createdAt": {
+            "type": "Date",
+            "description": "Timestamp when material was created",
+            "default": "Date.now()",
+            "index": true
+          },
+          "updatedAt": {
+            "type": "Date",
+            "description": "Timestamp when material was last updated",
+            "default": "Date.now()"
+          },
+          "version": {
+            "type": "Number",
+            "description": "Schema version for future migrations",
+            "default": 1
+          }
+        },
+        "indexes": [
+          {
+            "name": "companyId_category_name",
+            "fields": {
+              "companyId": 1,
+              "category": 1,
+              "name": 1
+            },
+            "unique": true,
+            "description": "Ensures unique material per company, category, and name combination"
+          },
+          {
+            "name": "category_name",
+            "fields": {
+              "category": 1,
+              "name": 1,
+              "isActive": 1
+            },
+            "description": "Optimizes query: get particular material of particular category from each company"
+          },
+          {
+            "name": "companyId_isActive",
+            "fields": {
+              "companyId": 1,
+              "isActive": 1
+            },
+            "description": "Optimizes queries for all active materials of a company"
+          }
+        ]
+      }
+    },
+    "materials": {
+      "material_example_1": {
+        "_id": "ObjectId('507f191e810c19729de860ea')",
+        "companyId": "RNXt-fvTTinybTb5JpE66",
+        "category": "Труба ТО",
+        "name": "Сталь 20",
+        "price": {
+          "currency": "RUB",
+          "amount": 3300
+        },
+        "unitSystem": "SI",
+        "specStandard": "GOST",
+        "properties": {
+          "diameter": 20,
+          "grade": "A36",
+          "density": 7.85,
+          "meltingPoint": 1538,
+          "tensileStrength": 400
+        },
+        "isActive": true,
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "updatedAt": "2024-01-15T10:30:00.000Z",
+        "version": 1
+      },
+      "material_example_2": {
+        "_id": "ObjectId('507f191e810c19729de860ea')",
+        "companyId": "company_234",
+        "category": "Труба ТО",
+        "name": "Сталь 20",
+        "description": "Carbon steel grade A36",
+        "price": {
+          "currency": "RUB",
+          "amount": 3000
+        },
+        "unitSystem": "SI",
+        "specStandard": "GOST",
+        "properties": {
+          "grade": "A36",
+          "density": 7.85,
+          "unit": "kg/m³",
+          "meltingPoint": 1538,
+          "tensileStrength": 400
+        },
+        "isActive": true,
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "updatedAt": "2024-01-15T10:30:00.000Z",
+        "version": 1
+      },
+      "material_example_3": {
+        "_id": "ObjectId('507f191e810c19729de860ec')",
+        "companyId": "ObjectId('507f1f77bcf86cd799439012')",
+        "category": "Metals",
+        "name": "Steel",
+        "description": "Stainless steel 304",
+        "price": {
+          "currency": "RUB",
+          "amount": 4500
+        },
+        "unitSystem": "SI",
+        "specStandard": "ANSI",
+        "properties": {
+          "grade": "304",
+          "density": 8.0,
+          "unit": "kg/m³",
+          "corrosionResistance": "High"
+        },
+        "isActive": true,
+        "createdAt": "2024-01-16T09:00:00.000Z",
+        "updatedAt": "2024-01-16T09:00:00.000Z",
+        "version": 1
+      }
+    },
+    "query_examples": {
+      "popular_query": {
+        "description": "Get particular material of particular category from each company",
+        "mongodb_query": {
+          "aggregation": [
+            {
+              "$match": {
+                "category": "Metals",
+                "name": "Steel",
+                "isActive": true
+              }
+            },
+            {
+              "$group": {
+                "_id": "$companyId",
+                "material": {
+                  "$first": "$$ROOT"
+                }
+              }
+            },
+            {
+              "$lookup": {
+                "from": "companies",
+                "localField": "_id",
+                "foreignField": "_id",
+                "as": "company"
+              }
+            },
+            {
+              "$unwind": "$company"
+            },
+            {
+              "$project": {
+                "companyId": "$_id",
+                "companyName": "$company.name",
+                "material": "$material"
+              }
+            }
+          ],
+          "find_query": {
+            "category": "Metals",
+            "name": "Steel",
+            "isActive": true
+          }
+        }
+      },
+      "get_all_materials_for_company": {
+        "description": "Get all materials for a specific company",
+        "mongodb_query": {
+          "find": {
+            "companyId": "ObjectId('507f1f77bcf86cd799439011')",
+            "isActive": true
+          },
+          "sort": {
+            "category": 1,
+            "name": 1
+          }
+        }
+      },
+      "get_materials_by_category": {
+        "description": "Get all materials in a specific category for a company",
+        "mongodb_query": {
+          "find": {
+            "companyId": "ObjectId('507f1f77bcf86cd799439011')",
+            "category": "Metals",
+            "isActive": true
+          }
+        }
+      }
+    },
+    "best_practices_applied": [
+      "Separate collection for materials enables efficient cross-company queries",
+      "Compound unique index on (companyId, category, name) ensures data integrity",
+      "Compound index on (category, name, isActive) optimizes the popular query pattern",
+      "ObjectId references maintain referential integrity with companies collection",
+      "Soft delete pattern with isActive flag preserves data history",
+      "Timestamps (createdAt, updatedAt) for audit trail",
+      "Version field for future schema migrations",
+      "Flexible properties object allows material-specific attributes without schema changes",
+      "Indexes strategically placed for common query patterns"
+    ],
+    "index_creation_commands": {
+      "unique_compound_index": "db.materials.createIndex({ companyId: 1, category: 1, name: 1 }, { unique: true, name: 'companyId_category_name' })",
+      "query_optimization_index": "db.materials.createIndex({ category: 1, name: 1, isActive: 1 }, { name: 'category_name_isActive' })",
+      "company_materials_index": "db.materials.createIndex({ companyId: 1, isActive: 1 }, { name: 'companyId_isActive' })",
+      "timestamp_index": "db.materials.createIndex({ createdAt: -1 }, { name: 'createdAt_desc' })"
+    }
+  }
+}

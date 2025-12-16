@@ -4,10 +4,10 @@
  *
  * Usage:
  *   node scripts/import_materials.js \
- *     --currentDb /home/denis/Downloads/currentDb.json \
+ *     --currentDb ./shared/currentDb.json \
  *     --companyId <companyId> \
  *     [--mongoUri mongodb://localhost:27017] \
- *     [--dbName materials] \
+ *     [--dbName uems] \
  *     [--insert] \
  *     [--previewFile /tmp/materials_preview.json]
  *
@@ -41,7 +41,7 @@ const mongoUri = getArgValue(
   "--mongoUri",
   process.env.MONGO_URI || "mongodb://localhost:27017"
 );
-const dbName = getArgValue("--dbName", process.env.MONGO_DB || "materials");
+const dbName = getArgValue("--dbName", process.env.MONGO_DB || "uems");
 const previewFile = getArgValue("--previewFile", "");
 
 if (!currentDbPath) {

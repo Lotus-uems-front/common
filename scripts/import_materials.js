@@ -15,8 +15,7 @@
  * - By default the script only prints the transformed documents (preview mode).
  * - Add --insert to write into the MongoDB collection `materials`.
  * - Price is required; any record without price is skipped.
- * - Dimensions in the legacy file are in millimeters; they are stored in SI
- *   meters with the source value/unit kept alongside.
+ * - Dimensions are stored with units in property names (e.g., diameter_mm).
  */
 
 const fs = require("fs");
@@ -60,8 +59,8 @@ const renameDictionary = {
   "Марка стали": "name",
   "Стоимость,  руб./кг. без НДС": "price.amount",
   "Стоимость, руб./кг. без НДС": "price.amount",
-  "S,мм": "properties.wallThickness (m, from mm)",
-  d: "properties.diameter (m, from mm)",
+  "S,мм": "properties.wallThickness_mm",
+  d: "properties.diameter_mm",
   id: "properties.rawId",
 };
 
@@ -70,20 +69,15 @@ const priceKeys = [
   "Стоимость, руб./кг. без НДС",
 ];
 
-function mmToMeters(valueMm) {
-  if (valueMm === undefined || valueMm === null || Number.isNaN(valueMm)) {
+function toNumber(value) {
+  if (value === undefined || value === null || Number.isNaN(value)) {
     return undefined;
   }
-  const numericValue = Number(valueMm);
+  const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) {
     return undefined;
   }
-  return {
-    value: numericValue / 1000,
-    unit: "m",
-    sourceUnit: "mm",
-    sourceValue: numericValue,
-  };
+  return numericValue;
 }
 
 function buildMaterialDocument(categoryName, rawItem, companyIdValue) {
@@ -94,9 +88,9 @@ function buildMaterialDocument(categoryName, rawItem, companyIdValue) {
   }
 
   const grade = rawItem["Марка стали"] || "Без марки";
-  const diameter = rawItem.d !== undefined ? mmToMeters(rawItem.d) : undefined;
+  const diameter = rawItem.d !== undefined ? toNumber(rawItem.d) : undefined;
   const wallThickness =
-    rawItem["S,мм"] !== undefined ? mmToMeters(rawItem["S,мм"]) : undefined;
+    rawItem["S,мм"] !== undefined ? toNumber(rawItem["S,мм"]) : undefined;
 
   const now = new Date();
   return {
@@ -110,8 +104,8 @@ function buildMaterialDocument(categoryName, rawItem, companyIdValue) {
     unitSystem: "SI",
     specStandard: "GOST",
     properties: {
-      ...(diameter ? { diameter } : {}),
-      ...(wallThickness ? { wallThickness } : {}),
+      ...(diameter !== undefined ? { diameter_mm: diameter } : {}),
+      ...(wallThickness !== undefined ? { wallThickness_mm: wallThickness } : {}),
       ...(rawItem.id && rawItem.id !== "-" ? { rawId: rawItem.id } : {}),
     },
     isActive: true,

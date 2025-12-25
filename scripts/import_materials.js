@@ -105,12 +105,14 @@ function buildMaterialDocument(categoryName, rawItem, companyIdValue) {
     specStandard: "GOST",
     properties: {
       ...(diameter !== undefined ? { diameter_mm: diameter } : {}),
-      ...(wallThickness !== undefined ? { wallThickness_mm: wallThickness } : {}),
+      ...(wallThickness !== undefined
+        ? { wallThickness_mm: wallThickness }
+        : {}),
       ...(rawItem.id && rawItem.id !== "-" ? { rawId: rawItem.id } : {}),
     },
     isActive: true,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
     version: 1,
   };
 }
